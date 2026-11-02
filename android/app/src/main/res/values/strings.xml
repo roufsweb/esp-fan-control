@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Fan Control</string>
+    <string name="status_connected">Connected</string>
+    <string name="status_connecting">Connecting...</string>
+    <string name="status_disconnected">Disconnected</string>
+    <string name="status_scanning">Scanning...</string>
+
+    <!-- Presets -->
+    <string name="preset_silent">Silent</string>
+    <string name="preset_balanced">Balanced</string>
+    <string name="preset_boost">Boost</string>
+    <string name="preset_auto">Auto</string>
+
+    <!-- Metrics -->
+    <string name="label_rpm">RPM</string>
+    <string name="label_speed">Speed</string>
+    <string name="label_live">Live</string>
+    <string name="label_power">Power</string>
+</resources>
+

@@ -1,0 +1,52 @@
+# ==============================================================================
+# ESP Fan Control — Git Ignore Configuration
+# ==============================================================================
+
+# Android Build Outputs & Caches
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+android/*.iml
+android/.idea/
+android/.navigation/
+android/captures/
+
+# Android Signing Keys & Sensitive Files
+*.jks
+*.keystore
+*.p12
+*.key
+signing.properties
+
+# PlatformIO & Embedded Build Outputs
+firmware/.pio/
+firmware/.vscode/
+firmware/.idea/
+firmware/*.elf
+firmware/*.hex
+
+# Python Caches & Virtual Environments
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+
+# Environment Variables & Secrets
+.env
+.env.*
+*.secret
+*.pem
+secrets.json
+google-services.json
+
+# Operating System & Editor Metadata
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+*.swp
+*~
+.vscode/
+.idea/
