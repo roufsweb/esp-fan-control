@@ -2,6 +2,13 @@
 
 A modern, high-precision cooling control system featuring an **ESP32-C3 Mini** firmware engine and a minimalist **Google Material 3 Android App** with real-time BLE telemetry, NVS state persistence, and a native **In-App USB-OTG Firmware Flasher**.
 
+[![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-blue?logo=github)](https://github.com/roufsweb/esp-fan-control)
+[![GitHub Pages Portal](https://img.shields.io/badge/Web%20Portal-GitHub%20Pages-success?logo=github)](https://roufsweb.github.io/esp-fan-control/)
+[![Download APK](https://img.shields.io/badge/Download-Android%20APK-brightgreen?logo=android)](https://github.com/roufsweb/esp-fan-control/raw/main/docs/app-debug.apk)
+
+* **Online Web Portal & Flasher**: [**https://roufsweb.github.io/esp-fan-control/**](https://roufsweb.github.io/esp-fan-control/)
+* **Direct APK Download**: [**Download `app-debug.apk` (v1.0.0)**](https://github.com/roufsweb/esp-fan-control/raw/main/docs/app-debug.apk)
+
 ---
 
 ## 1. System Architecture Overview
@@ -89,3 +96,4 @@ Located under `.agents/skills/`:
 1. **Stall Prevention**: Active fan speed is strictly clamped to a minimum of 20% to prevent motor stall and heat buildup.
 2. **Flash Endurance**: High-frequency slider scrubbing is debounced by 1.5 seconds before committing to NVS flash memory.
 3. **Power Isolation**: Never attempt to power a 12V fan from the ESP32-C3 3.3V power pin. Use a dedicated power supply sharing common ground.
+

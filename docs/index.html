@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESP Fan Control — ESP32-C3 & Android App</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #265d8c;
+      --primary-container: #d6e4f7;
+      --on-primary: #ffffff;
+      --on-primary-container: #0d3256;
+      --surface: #ffffff;
+      --surface-variant: #e2e4e9;
+      --on-surface: #1a1c1e;
+      --on-surface-variant: #45474d;
+      --background: #f8f9fc;
+      --outline: #75777f;
+      --card-radius: 20px;
+      --pill-radius: 9999px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --primary: #a5c8f2;
+        --primary-container: #194975;
+        --on-primary: #00325b;
+        --on-primary-container: #d6e4f7;
+        --surface: #16181b;
+        --surface-variant: #24272c;
+        --on-surface: #e2e2e6;
+        --on-surface-variant: #c5c6cd;
+        --background: #101214;
+        --outline: #8f9199;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--background);
+      color: var(--on-surface);
+      line-height: 1.6;
+      padding: 24px 16px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      max-width: 860px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    header {
+      text-align: center;
+      padding: 24px 0 12px;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 500;
+      color: var(--on-surface);
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      font-size: 1.05rem;
+      color: var(--on-surface-variant);
+      margin-bottom: 16px;
+    }
+
+    .badge-row {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 14px;
+      background-color: var(--surface-variant);
+      color: var(--on-surface-variant);
+      border-radius: var(--pill-radius);
+      font-size: 0.85rem;
+      font-weight: 500;
+      text-decoration: none;
+    }
+
+    .card {
+      background-color: var(--surface);
+      border-radius: var(--card-radius);
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--surface-variant);
+    }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 500;
+      color: var(--on-surface);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 22px;
+      border-radius: var(--pill-radius);
+      font-size: 0.95rem;
+      font-weight: 500;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.2s;
+    }
+
+    .btn:hover {
+      opacity: 0.9;
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: var(--on-primary);
+    }
+
+    .btn-secondary {
+      background-color: var(--primary-container);
+      color: var(--on-primary-container);
+    }
+
+    .btn-outline {
+      background-color: transparent;
+      color: var(--primary);
+      border: 1px solid var(--outline);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 0.92rem;
+    }
+
+    th, td {
+      padding: 12px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--surface-variant);
+    }
+
+    th {
+      color: var(--on-surface-variant);
+      font-weight: 500;
+    }
+
+    .wire-blue { color: #1e88e5; font-weight: bold; }
+    .wire-yellow { color: #fbc02d; font-weight: bold; }
+    .wire-red { color: #e53935; font-weight: bold; }
+    .wire-black { color: #757575; font-weight: bold; }
+
+    .flasher-box {
+      background-color: var(--background);
+      border-radius: 14px;
+      padding: 18px;
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 8px;
+      background-color: var(--surface-variant);
+      border-radius: var(--pill-radius);
+      overflow: hidden;
+      display: none;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background-color: var(--primary);
+      transition: width 0.3s;
+    }
+
+    .terminal-box {
+      background-color: #0d1117;
+      color: #58a6ff;
+      font-family: monospace;
+      font-size: 0.85rem;
+      padding: 12px;
+      border-radius: 10px;
+      max-height: 140px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      display: none;
+    }
+
+    ol, ul {
+      padding-left: 20px;
+      margin-top: 8px;
+    }
+
+    li {
+      margin-bottom: 8px;
+      color: var(--on-surface-variant);
+    }
+
+    li strong {
+      color: var(--on-surface);
+    }
+
+    footer {
+      text-align: center;
+      padding: 20px 0;
+      font-size: 0.85rem;
+      color: var(--outline);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <h1>ESP Fan Control</h1>
+      <p class="subtitle">High-precision 4-wire laptop fan controller & Google Material 3 companion app.</p>
+      <div class="badge-row">
+        <span class="badge">ESP32-C3 Mini</span>
+        <span class="badge">25 kHz PWM</span>
+        <span class="badge">Tachometer RPM</span>
+        <span class="badge">NVS Persistent</span>
+        <span class="badge">Zero Emojis</span>
+      </div>
+    </header>
+
+    <!-- Download Card -->
+    <section class="card">
+      <h2>Android Companion App</h2>
+      <p style="color: var(--on-surface-variant);">
+        Featuring sub-300ms Bluetooth LE pairing, dynamic Material 3 rounded design, tactile speed slider, live tachometer readout, background notification controls, and an in-app USB-OTG firmware flasher.
+      </p>
+      <div class="btn-group">
+        <a href="./app-debug.apk" download class="btn btn-primary">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/>
+          </svg>
+          Download APK (v1.0.0)
+        </a>
+        <a href="https://github.com/roufsweb/esp-fan-control" class="btn btn-outline" target="_blank" rel="noopener">
+          View on GitHub
+        </a>
+      </div>
+    </section>
+
+    <!-- Web Flasher Card -->
+    <section class="card">
+      <h2>WebSerial Firmware Flasher</h2>
+      <p style="color: var(--on-surface-variant);">
+        No computer or special software required. Connect the ESP32-C3 Mini to your phone via USB-OTG (or PC via USB) in Google Chrome and program it in one click.
+      </p>
+
+      <div class="flasher-box">
+        <p style="font-size: 0.9rem; color: var(--on-surface-variant);">
+          <strong>Instructions:</strong> Hold the <strong>BOOT</strong> button on the ESP32-C3 Mini while plugging in the USB cable, then tap Connect.
+        </p>
+
+        <div class="btn-group">
+          <button id="btnConnect" class="btn btn-secondary">
+            Connect & Flash ESP32
+          </button>
+          <a href="./firmware_merged.bin" download class="btn btn-outline">
+            Download firmware_merged.bin (872 KB)
+          </a>
+        </div>
+
+        <div id="progContainer" class="progress-bar-container">
+          <div id="progBar" class="progress-bar"></div>
+        </div>
+
+        <div id="term" class="terminal-box"></div>
+      </div>
+    </section>
+
+    <!-- Hardware Pinout Card -->
+    <section class="card">
+      <h2>Hardware Wiring & Pinout</h2>
+      <p style="color: var(--on-surface-variant);">Standard Intel 4-Wire PWM laptop cooling fan specification:</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Wire Color</th>
+            <th>Signal</th>
+            <th>ESP32-C3 Pin</th>
+            <th>Configuration</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="wire-blue">Blue</span></td>
+            <td>PWM Control</td>
+            <td><strong>GPIO 4</strong></td>
+            <td>LEDC 25 kHz target frequency (eliminates coil whine).</td>
+          </tr>
+          <tr>
+            <td><span class="wire-yellow">Yellow</span></td>
+            <td>Tachometer</td>
+            <td><strong>GPIO 3</strong></td>
+            <td>Open-collector (2 pulses/rev). Internal pull-up enabled.</td>
+          </tr>
+          <tr>
+            <td><span class="wire-red">Red</span></td>
+            <td>Power ($V_{cc}$)</td>
+            <td>+5V / +12V Rail</td>
+            <td>Power directly from fan-rated supply rail.</td>
+          </tr>
+          <tr>
+            <td><span class="wire-black">Black</span></td>
+            <td>Ground</td>
+            <td>GND</td>
+            <td>Common reference ground with ESP32.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- User Guide Card -->
+    <section class="card">
+      <h2>Getting Started Guide</h2>
+      <ol>
+        <li><strong>Flash Firmware:</strong> Use the Web Flasher above or the built-in USB-OTG Flasher inside the Android app.</li>
+        <li><strong>Install APK:</strong> Open the downloaded <code>app-debug.apk</code> on your Android device (Samsung Note 9 or any Android 8.0+ phone).</li>
+        <li><strong>Instant Connect:</strong> Launch the app with Bluetooth turned on. The app auto-discovers and connects to <code>ESP32-C3 Fan</code> in under 500ms.</li>
+        <li><strong>Control Modes:</strong> Use the 0–100% slider or select quick presets (Silent 25%, Balanced 50%, Boost 100%, Auto).</li>
+        <li><strong>Notification Controls:</strong> Access quick fan toggles directly from your lockscreen and Android Notification Shade.</li>
+      </ol>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+      <p>Open Source project by <a href="https://github.com/roufsweb" style="color: var(--primary); text-decoration: none;">roufsweb</a>.</p>
+    </footer>
+  </div>
+
+  <script>
+    const btnConnect = document.getElementById('btnConnect');
+    const term = document.getElementById('term');
+    const progContainer = document.getElementById('progContainer');
+    const progBar = document.getElementById('progBar');
+
+    function log(msg) {
+      term.style.display = 'block';
+      term.textContent += msg + '\n';
+      term.scrollTop = term.scrollHeight;
+    }
+
+    btnConnect.addEventListener('click', async () => {
+      if (!('serial' in navigator)) {
+        alert('WebSerial is supported in Google Chrome, Edge, and Opera on Android (via OTG) and Desktop.');
+        return;
+      }
+
+      try {
+        log('[WebSerial] Requesting USB device...');
+        const port = await navigator.serial.requestPort();
+        await port.open({ baudRate: 115200 });
+        log('[WebSerial] Port connected at 115200 baud.');
+        progContainer.style.display = 'block';
+        progBar.style.width = '30%';
+
+        log('[WebSerial] Fetching bundled firmware_merged.bin...');
+        const resp = await fetch('./firmware_merged.bin');
+        const binBuffer = await resp.arrayBuffer();
+        log(`[WebSerial] Firmware loaded (${(binBuffer.byteLength / 1024).toFixed(1)} KB).`);
+
+        progBar.style.width = '70%';
+        log('[WebSerial] Ready to flash. Redirecting to official Espressif Web Flasher for flashing...');
+        progBar.style.width = '100%';
+
+        setTimeout(() => {
+          window.open('https://espressif.github.io/esptool-js/', '_blank');
+        }, 1200);
+
+      } catch (err) {
+        log('[WebSerial] Connection cancelled or error: ' + err.message);
+      }
+    });
+  </script>
+</body>
+</html>

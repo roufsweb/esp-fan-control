@@ -73,3 +73,4 @@ If a secret is accidentally committed to Git:
    * Do NOT merely make a new commit that deletes the file (the secret remains in Git history).
    * Use `git filter-repo` or `git reset HEAD~1` (if unpushed) to rewrite the commit without the sensitive file.
 3. **Log Event**: Document the remediation action in `PROJECT_SUMMARY.md` without re-publishing the secret.
+

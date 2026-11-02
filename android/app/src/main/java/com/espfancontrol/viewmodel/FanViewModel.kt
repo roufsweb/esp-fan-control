@@ -92,6 +92,10 @@ class FanViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun checkUsbDeviceAttached() {
+        flasher.findConnectedEspDevice()
+    }
+
     override fun onCleared() {
         super.onCleared()
         bleManager.stopScan()

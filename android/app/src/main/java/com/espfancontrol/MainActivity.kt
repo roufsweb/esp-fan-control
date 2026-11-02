@@ -29,12 +29,18 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         checkAndRequestPermissions()
+        viewModel.checkUsbDeviceAttached()
 
         setContent {
             EspFanControlTheme {
                 DashboardScreen(viewModel = viewModel)
             }
         }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent?) {
+        super.onNewIntent(intent)
+        viewModel.checkUsbDeviceAttached()
     }
 
     private fun checkAndRequestPermissions() {
