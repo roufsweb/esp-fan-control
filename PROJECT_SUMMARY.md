@@ -30,6 +30,7 @@ This log maintains a rapid-glance, cumulative record of every architectural deci
 | 11 | **No-PC Flashing Architecture** | Developed OTG flashing strategy for users without computers using Android Chrome WebSerial and bundled unified binary. | Allows flashing ESP32-C3 directly from phone via USB-C OTG cable; eliminates computer requirement. | Standard dual-file flashing (`bootloader` + `firmware`) is error-prone for end-users; requires single merged `.bin` at offset `0x0`. | Standardized |
 | 12 | **Native In-App USB Flasher** | Integrated native SLIP bootloader flasher (`Esp32Flasher.kt` + `UsbFlasherCard.kt`) directly into Android app. | Completely eliminates web UI hassle; single-tap flashing with live progress directly in app from OTG cable. | USB baud rate must be synchronized with ESP32-C3 ROM bootloader; 1KB chunks provide maximum OTG stability. | Completed |
 | 13 | **Git Initialization & Secret Guard** | Initialized repository with comprehensive `.gitignore`, `README.md`, and created `sensitive-info-guard` skill. | Prevents accidental leak of keystores, credentials, local paths, or build artifacts. | `local.properties` contains private absolute machine paths; must be strictly ignored. | Completed |
+| 14 | **GitHub Release & About Metadata** | Published GitHub release `v1.0.0` with assets and set live homepage `https://roufsweb.github.io/esp-fan-control/` in GitHub About section. | Direct one-click access to web portal, APK downloads, and topics on GitHub repository page. | N/A | Completed |
 
 ---
 
