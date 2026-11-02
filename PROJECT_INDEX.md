@@ -76,9 +76,11 @@ esp-fan-controll/
 │   │           └── viewmodel/
 │   │               └── FanViewModel.kt    # UI State management & command dispatcher
 │
-├── docs/                                  # Engineering documentation & schematics
-│   ├── hardware_schematic.md              # Wiring diagrams, level shifters, pull-ups
-│   └── api_protocol.md                    # BLE characteristic UUIDs & payload specifications
+├── docs/                                  # GitHub Pages Web Portal & Deployment
+│   ├── index.html                         # Material 3 landing page with zero-redirect in-browser WebSerial flasher
+│   ├── esptool-bundle.js                  # Standalone in-browser WebSerial ESP32 ROM flasher engine
+│   ├── firmware_merged.bin                # Unified single-binary firmware image for web flashing
+│   └── app-debug.apk                      # Direct downloadable Android companion app APK
 │
 ├── .gitignore                             # Git exclusion list (build caches, keystores, local properties)
 ├── README.md                              # Main project overview, wiring diagram, quickstart & index

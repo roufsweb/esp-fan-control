@@ -9,3 +9,4 @@
     <!-- FTDI FT232R -->
     <usb-device vendor-id="1027" />  <!-- 0x0403 -->
 </resources>
+
