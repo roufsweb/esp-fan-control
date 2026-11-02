@@ -31,7 +31,7 @@ This log maintains a rapid-glance, cumulative record of every architectural deci
 | 12 | **Native In-App USB Flasher** | Integrated native SLIP bootloader flasher (`Esp32Flasher.kt` + `UsbFlasherCard.kt`) directly into Android app. | Completely eliminates web UI hassle; single-tap flashing with live progress directly in app from OTG cable. | USB baud rate must be synchronized with ESP32-C3 ROM bootloader; 1KB chunks provide maximum OTG stability. | Completed |
 | 13 | **Git Initialization & Secret Guard** | Initialized repository with comprehensive `.gitignore`, `README.md`, and created `sensitive-info-guard` skill. | Prevents accidental leak of keystores, credentials, local paths, or build artifacts. | `local.properties` contains private absolute machine paths; must be strictly ignored. | Completed |
 | 14 | **GitHub Release & About Metadata** | Published GitHub release `v1.0.0` with assets and set live homepage `https://roufsweb.github.io/esp-fan-control/` in GitHub About section. | Direct one-click access to web portal, APK downloads, and topics on GitHub repository page. | N/A | Completed |
-| 15 | **Tasmota Web Portal UI** | Redesigned `docs/index.html` to mirror the classic Tasmota device UI with stacked action buttons, telemetry sensor table, and timestamped console. | Native in-browser WebSerial flashing with zero redirects; direct APK download; clean embedded IoT aesthetic. | N/A | Completed |
+| 15 | **Tasmota Web Portal UI** | Reverted `docs/index.html` to the clean classic Tasmota interface with stacked action buttons, telemetry sensor table, and timestamped console. | Native in-browser WebSerial flashing with zero redirects; direct APK download; preferred clean IoT aesthetic. | N/A | Standardized |
 
 ---
 
