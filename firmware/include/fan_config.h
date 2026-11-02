@@ -11,6 +11,9 @@ constexpr uint8_t PIN_FAN_PWM = 4;
 // Yellow Wire: Tachometer Speed Sense (Open-Collector, 2 Pulses / Revolution)
 constexpr uint8_t PIN_FAN_TACH = 3;
 
+// On-board Status LED (GPIO 8 on DevKitM-1 RGB / SuperMini Blue LED)
+constexpr uint8_t PIN_STATUS_LED = 8;
+
 // ============================================================================
 // PWM CONFIGURATION (Intel 4-Wire Spec: 21 kHz - 28 kHz, Target: 25 kHz)
 // ============================================================================

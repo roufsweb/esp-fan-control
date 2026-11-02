@@ -55,12 +55,26 @@ void BleFanService::begin(SpeedChangeCallback onSpeedChange, ModeChangeCallback 
 
     // Configure Advertising
     NimBLEAdvertising* pAdvertising = NimBLEDevice::getAdvertising();
-    pAdvertising->addServiceUUID(BLE_SERVICE_UUID);
-    pAdvertising->setName(BLE_DEVICE_NAME);
+    
+    // Explicit primary advertising packet: General Discoverable + Complete Local Name
+    // This guarantees "ESP32-C3 Fan" is immediately visible in ALL Bluetooth scanners & Android menus
+    NimBLEAdvertisementData advData;
+    advData.setFlags(0x06); // General Discoverable (0x02) + BR/EDR Not Supported (0x04)
+    advData.setName(BLE_DEVICE_NAME);
+    pAdvertising->setAdvertisementData(advData);
+
+    // Scan Response packet: Full 128-bit Fan Service UUID
+    NimBLEAdvertisementData scanData;
+    scanData.setCompleteServices(NimBLEUUID(BLE_SERVICE_UUID));
+    pAdvertising->setScanResponseData(scanData);
+
+    // High-frequency advertising interval (20ms to 40ms) for sub-second discovery
+    pAdvertising->setMinInterval(32); // 32 * 0.625ms = 20ms
+    pAdvertising->setMaxInterval(64); // 64 * 0.625ms = 40ms
     pAdvertising->setScanResponse(true);
     pAdvertising->start();
 
-    Serial.println("[BLE] Fan GATT Service active and advertising.");
+    Serial.println("[BLE] Fan GATT Service active: Broadcasting 'ESP32-C3 Fan' at 20-40ms interval.");
 }
 
 void BleFanService::onConnect(NimBLEServer* pServer) {

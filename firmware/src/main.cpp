@@ -105,6 +105,8 @@ void setup() {
                 currentPower, currentSpeed, currentMode);
 
   // Initialize hardware peripherals
+  pinMode(PIN_STATUS_LED, OUTPUT);
+  digitalWrite(PIN_STATUS_LED, HIGH); // Immediate power-on visual indicator
   fanPwm.begin();
   fanTach.begin();
 
@@ -145,6 +147,16 @@ void loop() {
   // Check debounced NVS flash write
   if (pendingFlashWrite && (millis() - pendingFlashTime >= FLASH_DEBOUNCE_MS)) {
     commitStateToFlash();
+  }
+
+  // Visual status LED: Solid ON when phone connected, heartbeat blink when advertising
+  uint32_t nowMs = millis();
+  if (bleService.isClientConnected()) {
+    digitalWrite(PIN_STATUS_LED, HIGH);
+  } else {
+    // 80ms pulse every 1000ms
+    bool ledPulse = (nowMs % 1000) < 80;
+    digitalWrite(PIN_STATUS_LED, ledPulse ? HIGH : LOW);
   }
 
   // Yield for FreeRTOS background tasks & BLE stack

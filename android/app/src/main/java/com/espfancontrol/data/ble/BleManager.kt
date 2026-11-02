@@ -14,10 +14,12 @@ import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
+import android.location.LocationManager
 import android.os.Build
 import android.os.ParcelUuid
 import android.util.Log
 import com.espfancontrol.data.model.BleConnectionState
+import com.espfancontrol.data.model.DiscoveredBleDevice
 import com.espfancontrol.data.model.FanMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -68,24 +70,58 @@ class BleManager(private val context: Context) {
     private val _currentMode = MutableStateFlow(FanMode.BALANCED)
     val currentMode: StateFlow<FanMode> = _currentMode.asStateFlow()
 
+    private val _discoveredDevices = MutableStateFlow<List<DiscoveredBleDevice>>(emptyList())
+    val discoveredDevices: StateFlow<List<DiscoveredBleDevice>> = _discoveredDevices.asStateFlow()
+
     private var targetDevice: BluetoothDevice? = null
     private var isAutoReconnectActive = true
     private var reconnectAttempt = 0
     private var scanTimeoutJob: Job? = null
 
-    // Scan Callback with dual UUID + Name matching
+    fun isBluetoothEnabled(): Boolean = bluetoothAdapter?.isEnabled == true
+
+    private fun isLocationServiceEnabled(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) return true
+        val lm = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return false
+        return lm.isProviderEnabled(LocationManager.GPS_PROVIDER) || lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+    }
+
+    // Comprehensive scan callback that builds device list and auto-connects to matches
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
             val device = result?.device ?: return
             val record = result.scanRecord
             val name = device.name ?: record?.deviceName ?: ""
+            val address = device.address ?: ""
+            val rssi = result.rssi
 
-            val matchesUuid = record?.serviceUuids?.any { it.uuid == SERVICE_UUID } == true
-            val matchesName = name.contains("ESP32-C3 Fan", ignoreCase = true) ||
-                              name.contains("ESP32", ignoreCase = true)
+            // Check if this advertisement matches our fan controller
+            val isTarget = name.contains("ESP32-C3 Fan", ignoreCase = true) ||
+                           name.contains("ESP32", ignoreCase = true) ||
+                           name.contains("Fan", ignoreCase = true) ||
+                           (record?.serviceUuids?.any { it.uuid == SERVICE_UUID } == true)
 
-            if (matchesUuid || matchesName) {
-                Log.d(TAG, "Target ESP32 found: $name [${device.address}]")
+            // Update discovered devices list
+            val currentList = _discoveredDevices.value.toMutableList()
+            val existingIndex = currentList.indexOfFirst { it.address == address }
+            val item = DiscoveredBleDevice(
+                name = if (name.isNotBlank()) name else "Unnamed BLE Device",
+                address = address,
+                rssi = rssi,
+                isTarget = isTarget,
+                device = device
+            )
+
+            if (existingIndex >= 0) {
+                currentList[existingIndex] = item
+            } else {
+                currentList.add(item)
+            }
+            _discoveredDevices.value = currentList.sortedByDescending { it.isTarget }
+
+            // Auto-connect when a matching fan is found
+            if (isTarget && _connectionState.value == BleConnectionState.SCANNING) {
+                Log.d(TAG, "Target ESP32 found: '$name' [$address], connecting...")
                 stopScan()
                 connectToDevice(device)
             }
@@ -98,9 +134,17 @@ class BleManager(private val context: Context) {
     }
 
     fun startScanAndConnect() {
+        // 1. Verify Bluetooth Adapter
         if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled) {
             Log.w(TAG, "Bluetooth adapter unavailable or disabled")
-            _connectionState.value = BleConnectionState.DISCONNECTED
+            _connectionState.value = BleConnectionState.BLUETOOTH_OFF
+            return
+        }
+
+        // 2. Verify Location on older Android versions (<= 11)
+        if (!isLocationServiceEnabled()) {
+            Log.w(TAG, "Location service disabled on Android <= 11")
+            _connectionState.value = BleConnectionState.LOCATION_OFF
             return
         }
 
@@ -111,30 +155,44 @@ class BleManager(private val context: Context) {
         val scanner = bluetoothAdapter.bluetoothLeScanner
         if (scanner == null) {
             Log.w(TAG, "BLE Scanner not available")
+            _connectionState.value = BleConnectionState.DISCONNECTED
             return
         }
 
         isAutoReconnectActive = true
         _connectionState.value = BleConnectionState.SCANNING
+        _discoveredDevices.value = emptyList()
 
-        // Targeted filters: by Service UUID or Device Name
-        val filters = listOf(
-            ScanFilter.Builder().setServiceUuid(ParcelUuid(SERVICE_UUID)).build(),
-            ScanFilter.Builder().setDeviceName("ESP32-C3 Fan").build()
-        )
+        // Check already bonded devices first for instant reconnect
+        try {
+            val bonded = bluetoothAdapter.bondedDevices?.firstOrNull {
+                it.name?.contains("ESP32", ignoreCase = true) == true ||
+                it.name?.contains("Fan", ignoreCase = true) == true
+            }
+            if (bonded != null) {
+                Log.d(TAG, "Found bonded fan device: ${bonded.name} [${bonded.address}], connecting directly")
+                connectToDevice(bonded)
+                return
+            }
+        } catch (_: Exception) {}
+
+        // Pass an empty ScanFilter to satisfy Android 12+ neverForLocation while receiving all BLE packets
+        val filters = listOf(ScanFilter.Builder().build())
 
         val settings = ScanSettings.Builder()
             .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+            .setReportDelay(0)
             .build()
 
         try {
             scanner.startScan(filters, settings, scanCallback)
+            Log.d(TAG, "BLE scan started (low latency)...")
         } catch (e: Exception) {
-            Log.w(TAG, "Filtered scan failed, trying open scan: ${e.message}")
+            Log.w(TAG, "Filtered scan failed, attempting fallback: ${e.message}")
             try {
                 scanner.startScan(null, settings, scanCallback)
             } catch (ex: Exception) {
-                Log.e(TAG, "Cannot start BLE scan: ${ex.message}")
+                Log.e(TAG, "Cannot start scan: ${ex.message}")
                 _connectionState.value = BleConnectionState.DISCONNECTED
                 return
             }
@@ -142,23 +200,15 @@ class BleManager(private val context: Context) {
 
         scanTimeoutJob?.cancel()
         scanTimeoutJob = scope.launch {
-            // Adaptive fallback: if targeted scan doesn't find the device in 3.5s, switch to broad scan
-            delay(3500)
-            if (_connectionState.value == BleConnectionState.SCANNING) {
-                try {
-                    scanner.stopScan(scanCallback)
-                    scanner.startScan(null, settings, scanCallback)
-                    Log.d(TAG, "Targeted scan timed out; switched to broad scan with software filter")
-                } catch (e: Exception) {
-                    Log.w(TAG, "Broad scan transition failed: ${e.message}")
-                }
-            }
-
-            // Global safety timeout: stop scanning after 15 seconds
-            delay(11500)
+            // Safety timeout: 14 seconds scan window
+            delay(14000)
             if (_connectionState.value == BleConnectionState.SCANNING) {
                 stopScan()
-                _connectionState.value = BleConnectionState.DISCONNECTED
+                if (_discoveredDevices.value.none { it.isTarget }) {
+                    _connectionState.value = BleConnectionState.NO_DEVICE_FOUND
+                } else {
+                    _connectionState.value = BleConnectionState.DISCONNECTED
+                }
             }
         }
     }
@@ -173,7 +223,7 @@ class BleManager(private val context: Context) {
         }
     }
 
-    private fun connectToDevice(device: BluetoothDevice) {
+    fun connectToDevice(device: BluetoothDevice) {
         targetDevice = device
         _connectionState.value = BleConnectionState.CONNECTING
 
@@ -207,23 +257,32 @@ class BleManager(private val context: Context) {
         override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
             when (newState) {
                 BluetoothProfile.STATE_CONNECTED -> {
-                    Log.i(TAG, "GATT connected. Requesting high priority & discovering services...")
-                    gatt?.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
-                    gatt?.discoverServices()
-                    reconnectAttempt = 0
+                    if (status == BluetoothGatt.GATT_SUCCESS) {
+                        Log.i(TAG, "GATT connected. Requesting high priority & discovering services...")
+                        gatt?.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
+                        gatt?.discoverServices()
+                        reconnectAttempt = 0
+                    } else {
+                        Log.w(TAG, "GATT connection status failed: $status")
+                        handleDisconnect(gatt)
+                    }
                 }
                 BluetoothProfile.STATE_DISCONNECTED -> {
                     Log.w(TAG, "GATT disconnected (status $status)")
-                    _connectionState.value = BleConnectionState.DISCONNECTED
-                    try {
-                        gatt?.close()
-                    } catch (_: Exception) {}
-                    bluetoothGatt = null
-
-                    if (isAutoReconnectActive) {
-                        scheduleReconnect()
-                    }
+                    handleDisconnect(gatt)
                 }
+            }
+        }
+
+        private fun handleDisconnect(gatt: BluetoothGatt?) {
+            _connectionState.value = BleConnectionState.DISCONNECTED
+            try {
+                gatt?.close()
+            } catch (_: Exception) {}
+            bluetoothGatt = null
+
+            if (isAutoReconnectActive) {
+                scheduleReconnect()
             }
         }
 
@@ -238,7 +297,7 @@ class BleManager(private val context: Context) {
                     _connectionState.value = BleConnectionState.CONNECTED
                     Log.i(TAG, "ESP32 Fan Service bound successfully!")
 
-                    // Subscribe to RPM notifications
+                    // Subscribe to live RPM notifications
                     enableRpmNotifications(gatt)
                 } else {
                     Log.w(TAG, "ESP32 Fan Service UUID not found in GATT database")
@@ -266,7 +325,6 @@ class BleManager(private val context: Context) {
         ) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 handleCharacteristicUpdate(characteristic.uuid, value)
-                // If we just read speed, now read mode
                 if (characteristic.uuid == CHAR_SPEED_UUID) {
                     charMode?.let { gatt.readCharacteristic(it) }
                 }
@@ -349,7 +407,6 @@ class BleManager(private val context: Context) {
         }
     }
 
-    // Fast and robust writes
     fun sendSpeedCommand(percent: Int) {
         val gatt = bluetoothGatt ?: return
         val characteristic = charSpeed ?: return

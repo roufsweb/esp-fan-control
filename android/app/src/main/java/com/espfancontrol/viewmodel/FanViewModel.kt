@@ -1,10 +1,12 @@
 package com.espfancontrol.viewmodel
 
 import android.app.Application
+import android.bluetooth.BluetoothDevice
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.espfancontrol.data.ble.BleManager
 import com.espfancontrol.data.model.BleConnectionState
+import com.espfancontrol.data.model.DiscoveredBleDevice
 import com.espfancontrol.data.model.FanMode
 import com.espfancontrol.data.model.FanUiState
 import com.espfancontrol.data.usb.Esp32Flasher
@@ -33,19 +35,20 @@ class FanViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             combine(
-                bleManager.connectionState,
+                combine(bleManager.connectionState, bleManager.discoveredDevices) { conn, devs -> Pair(conn, devs) },
                 bleManager.liveRpm,
                 bleManager.currentSpeed,
                 bleManager.currentMode,
                 _isPowered
-            ) { connection, rpm, speed, mode, powered ->
+            ) { (connection, devices), rpm, speed, mode, powered ->
                 FanUiState(
                     connectionState = connection,
-                    liveRpm = if (powered) rpm else 0,
+                    liveRpm = if (powered && connection == BleConnectionState.CONNECTED) rpm else 0,
                     speedPercent = if (powered) speed else 0,
                     mode = mode,
                     isPowered = powered,
-                    isAutoMode = (mode == FanMode.AUTO)
+                    isAutoMode = (mode == FanMode.AUTO),
+                    discoveredDevices = devices
                 )
             }.collect { newState ->
                 _uiState.value = newState
@@ -60,6 +63,10 @@ class FanViewModel(application: Application) : AndroidViewModel(application) {
         } else {
             bleManager.startScanAndConnect()
         }
+    }
+
+    fun connectToDevice(device: BluetoothDevice) {
+        bleManager.connectToDevice(device)
     }
 
     fun setSpeed(percent: Int) {
@@ -101,4 +108,3 @@ class FanViewModel(application: Application) : AndroidViewModel(application) {
         bleManager.stopScan()
     }
 }
-

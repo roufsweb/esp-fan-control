@@ -21,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.espfancontrol.ui.components.DeviceConnectionCard
 import com.espfancontrol.ui.components.PowerToggle
 import com.espfancontrol.ui.components.PresetToggles
 import com.espfancontrol.ui.components.RpmGauge
@@ -76,7 +77,15 @@ fun DashboardScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            // Connection Management Card (Visible when disconnected or scanning)
+            DeviceConnectionCard(
+                connectionState = uiState.connectionState,
+                discoveredDevices = uiState.discoveredDevices,
+                onScanClick = { viewModel.toggleConnection() },
+                onDeviceConnectClick = { viewModel.connectToDevice(it) }
+            )
+
+            Spacer(modifier = Modifier.height(2.dp))
 
             // Main Tachometer Gauge
             RpmGauge(

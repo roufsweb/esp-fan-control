@@ -39,7 +39,8 @@ fun StatusPill(
         targetValue = when (connectionState) {
             BleConnectionState.CONNECTED -> MaterialTheme.colorScheme.primaryContainer
             BleConnectionState.CONNECTING, BleConnectionState.SCANNING -> MaterialTheme.colorScheme.surfaceVariant
-            BleConnectionState.DISCONNECTED -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+            BleConnectionState.BLUETOOTH_OFF, BleConnectionState.LOCATION_OFF -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+            else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
         },
         animationSpec = tween(300),
         label = "pillBg"
@@ -48,13 +49,15 @@ fun StatusPill(
     val contentColor = when (connectionState) {
         BleConnectionState.CONNECTED -> MaterialTheme.colorScheme.onPrimaryContainer
         BleConnectionState.CONNECTING, BleConnectionState.SCANNING -> MaterialTheme.colorScheme.onSurfaceVariant
-        BleConnectionState.DISCONNECTED -> MaterialTheme.colorScheme.outline
+        BleConnectionState.BLUETOOTH_OFF, BleConnectionState.LOCATION_OFF -> MaterialTheme.colorScheme.error
+        else -> MaterialTheme.colorScheme.outline
     }
 
     val icon = when (connectionState) {
         BleConnectionState.CONNECTED -> Icons.Outlined.BluetoothConnected
         BleConnectionState.CONNECTING, BleConnectionState.SCANNING -> Icons.Outlined.Sync
-        BleConnectionState.DISCONNECTED -> Icons.Outlined.BluetoothDisabled
+        BleConnectionState.BLUETOOTH_OFF -> Icons.Outlined.BluetoothDisabled
+        else -> Icons.Outlined.Bluetooth
     }
 
     Box(

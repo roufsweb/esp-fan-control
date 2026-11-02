@@ -63,6 +63,7 @@ esp-fan-controll/
 │   │           │   │   ├── SpeedSlider.kt # Rounded tactile PWM slider
 │   │           │   │   ├── PresetToggles.kt # Segmented button / chips for Quick Modes
 │   │           │   │   ├── StatusPill.kt  # Clean connection indicator pill
+│   │           │   │   ├── DeviceConnectionCard.kt # BLE device discovery, diagnostic tips & connect card
 │   │           │   │   └── UsbFlasherCard.kt # In-app USB-OTG firmware flasher card with progress
 │   │           │   └── screens/
 │   │           │       └── DashboardScreen.kt # Main fan control dashboard screen

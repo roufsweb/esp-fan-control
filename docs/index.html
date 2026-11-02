@@ -251,7 +251,7 @@
           Flash ESP32
         </button>
 
-        <a href="https://github.com/roufsweb/esp-fan-control/releases/download/v1.0.0/app-debug.apk" class="btn btn-secondary">
+        <a href="./app-debug.apk" download="FanControl.apk" class="btn btn-secondary">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
             <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/>
           </svg>
@@ -264,6 +264,19 @@
         <div id="progBar" class="progress-bar"></div>
       </div>
       <div id="term" class="terminal-box"></div>
+
+      <div id="flashSuccessGuide" style="display:none; margin-top: 14px; padding: 14px 16px; background: rgba(46, 125, 50, 0.12); border: 1px solid var(--success); border-radius: 14px; text-align: left;">
+        <strong style="color: var(--success); font-size: 1rem;">Firmware Flashed Successfully!</strong>
+        <p style="font-size: 0.88rem; color: var(--on-surface); margin-top: 6px; margin-bottom: 6px;"><strong>Next steps to start the fan:</strong></p>
+        <ol style="margin-left: 18px; font-size: 0.86rem; color: var(--on-surface-variant); display: flex; flex-direction: column; gap: 4px;">
+          <li><strong>Press the RST button</strong> on your ESP32-C3 board (or unplug and re-plug USB) to start normal mode.</li>
+          <li>The onboard LED will pulse (confirms active Bluetooth beacon).</li>
+          <li>Open the <strong>Fan Control</strong> app — it connects automatically!</li>
+        </ol>
+        <p style="margin-top: 8px; font-size: 0.82rem; color: var(--on-surface-variant);">
+          <em>Note: Bluetooth connects directly inside the Fan Control app. Custom BLE hardware does not appear in Android system settings.</em>
+        </p>
+      </div>
     </section>
 
     <!-- Pinout -->
@@ -307,8 +320,8 @@
       <h2>Setup</h2>
       <ol>
         <li>Connect ESP32-C3 via USB (hold <strong>BOOT</strong>) and tap <strong>Flash ESP32</strong> above.</li>
-        <li>Install the <strong>APK</strong> on your Android phone.</li>
-        <li>Open app — connects instantly to fan over Bluetooth.</li>
+        <li>Press the <strong>RST</strong> button on ESP32 (or unplug & re-plug USB) to start.</li>
+        <li>Install and open the <strong>Android APK</strong> — connects automatically inside the app.</li>
       </ol>
     </section>
 
@@ -397,7 +410,8 @@
 
         progBar.style.width = '100%';
         log('Flashing complete. Rebooting ESP32...');
-        setStatus('Flashed successfully! Device running.');
+        setStatus('Flashed successfully! Press RST button on ESP32 to start.');
+        document.getElementById('flashSuccessGuide').style.display = 'block';
 
         try { await loader.after('hard_reset'); } catch (_) {}
         await transport.disconnect();
