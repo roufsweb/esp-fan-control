@@ -3,32 +3,40 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ESP Fan Control</title>
+  <title>ESP Fan Control — One-Click Installer</title>
   <style>
     :root {
-      --bg: #eaeaea;
+      --bg: #f4f5f7;
       --card-bg: #ffffff;
-      --text: #222222;
-      --text-muted: #555555;
-      --border: #cccccc;
+      --text: #172b4d;
+      --text-muted: #5e6c84;
+      --border: #dfe1e6;
       --btn-primary: #1fa3ec;
+      --btn-primary-hover: #1583c2;
       --btn-secondary: #34495e;
-      --btn-hover: #1583c2;
-      --console-bg: #111111;
-      --console-text: #00ff66;
+      --btn-secondary-hover: #2c3e50;
+      --success: #36b37e;
+      --error: #ff5630;
+      --warning: #ffab00;
+      --console-bg: #091e42;
+      --console-text: #79f2c0;
     }
 
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg: #1f1f1f;
-        --card-bg: #272727;
-        --text: #e0e0e0;
-        --text-muted: #999999;
-        --border: #3d3d3d;
+        --bg: #181b1f;
+        --card-bg: #22262c;
+        --text: #e6edf3;
+        --text-muted: #8b949e;
+        --border: #30363d;
         --btn-primary: #1fa3ec;
+        --btn-primary-hover: #1583c2;
         --btn-secondary: #3b536b;
-        --btn-hover: #1583c2;
-        --console-bg: #0d0d0d;
+        --btn-secondary-hover: #2f4357;
+        --success: #57ab5a;
+        --error: #f85149;
+        --warning: #e3b341;
+        --console-bg: #0d1117;
         --console-text: #39ff14;
       }
     }
@@ -40,7 +48,7 @@
     }
 
     body {
-      font-family: Arial, Helvetica, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       background-color: var(--bg);
       color: var(--text);
       display: flex;
@@ -48,46 +56,218 @@
       padding: 24px 12px;
     }
 
-    .tasmota-container {
+    .app-container {
       width: 100%;
-      max-width: 440px;
+      max-width: 460px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 16px;
     }
 
-    /* Tasmota Header */
-    .tasmota-header {
+    /* Header */
+    .header {
       text-align: center;
-      padding: 10px 0;
+      padding: 8px 0;
     }
 
-    .tasmota-header h1 {
-      font-size: 1.6rem;
-      font-weight: bold;
-      color: var(--text);
-      margin-bottom: 2px;
+    .header h1 {
+      font-size: 1.7rem;
+      font-weight: 700;
+      margin-bottom: 4px;
       letter-spacing: -0.5px;
     }
 
-    .tasmota-header p {
-      font-size: 0.85rem;
+    .header p {
+      font-size: 0.9rem;
       color: var(--text-muted);
     }
 
-    /* Sensor / Telemetry Table */
+    /* Browser Warning Banner */
+    .browser-banner {
+      background-color: #fff4e5;
+      color: #663c00;
+      border: 1px solid #ffd599;
+      border-radius: 6px;
+      padding: 12px;
+      font-size: 0.85rem;
+      line-height: 1.4;
+      display: none;
+    }
+
+    /* Guided Steps Card */
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .steps-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .step-number {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background-color: var(--btn-primary);
+      color: #ffffff;
+      font-size: 0.85rem;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .step-text h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .step-text p {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.35;
+      margin-top: 2px;
+    }
+
+    /* Primary Big Buttons */
+    .btn-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 14px 18px;
+      font-size: 1.05rem;
+      font-weight: bold;
+      text-align: center;
+      text-decoration: none;
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      background-color: var(--btn-primary);
+      transition: background-color 0.15s ease-in-out, transform 0.1s;
+    }
+
+    .btn:hover:not(:disabled) {
+      background-color: var(--btn-primary-hover);
+    }
+
+    .btn:active:not(:disabled) {
+      transform: scale(0.99);
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .btn.secondary {
+      background-color: var(--btn-secondary);
+    }
+
+    .btn.secondary:hover:not(:disabled) {
+      background-color: var(--btn-secondary-hover);
+    }
+
+    /* Live Flashing Progress & Status Box */
+    .status-box {
+      background-color: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px;
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .status-title {
+      font-size: 0.95rem;
+      font-weight: bold;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .status-sub {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    .prog-track {
+      width: 100%;
+      height: 10px;
+      background-color: var(--border);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .prog-fill {
+      height: 100%;
+      width: 0%;
+      background-color: var(--success);
+      transition: width 0.2s ease-out;
+    }
+
+    /* Helpful Troubleshooting Card */
+    .trouble-card {
+      background-color: #fff9e6;
+      border: 1px solid #ffe082;
+      border-radius: 6px;
+      padding: 14px;
+      font-size: 0.84rem;
+      color: #5c4300;
+      line-height: 1.45;
+      display: none;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .trouble-card {
+        background-color: #2a2412;
+        border-color: #665014;
+        color: #ffecb3;
+      }
+    }
+
+    /* Tasmota Telemetry Table */
+    .table-card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
     .tasmota-table {
       width: 100%;
-      background-color: var(--card-bg);
       border-collapse: collapse;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      overflow: hidden;
-      font-size: 0.9rem;
+      font-size: 0.88rem;
     }
 
     .tasmota-table td {
-      padding: 9px 12px;
+      padding: 9px 14px;
       border-bottom: 1px solid var(--border);
     }
 
@@ -98,7 +278,6 @@
     .tasmota-table td.label {
       color: var(--text-muted);
       width: 48%;
-      font-weight: normal;
     }
 
     .tasmota-table td.val {
@@ -109,252 +288,243 @@
 
     .val-blue { color: #1e88e5 !important; }
     .val-yellow { color: #fbc02d !important; }
-    .val-green { color: #2ecc71 !important; }
 
-    /* Tasmota Stacked Block Buttons */
-    .btn-stack {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .tasmota-btn {
-      display: block;
-      width: 100%;
-      padding: 13px 16px;
-      font-size: 1.05rem;
-      font-weight: bold;
-      text-align: center;
-      text-decoration: none;
-      color: #ffffff;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      background-color: var(--btn-primary);
-      transition: background-color 0.15s ease-in-out;
-    }
-
-    .tasmota-btn:hover:not(:disabled) {
-      background-color: var(--btn-hover);
-    }
-
-    .tasmota-btn:disabled {
-      opacity: 0.55;
-      cursor: not-allowed;
-    }
-
-    .tasmota-btn.secondary {
-      background-color: var(--btn-secondary);
-    }
-
-    .tasmota-btn.secondary:hover:not(:disabled) {
-      background-color: #2c3e50;
-    }
-
-    /* Progress bar */
-    .prog-container {
-      width: 100%;
-      height: 14px;
-      background-color: var(--border);
-      border-radius: 3px;
-      overflow: hidden;
-      display: none;
-      margin-top: 4px;
-    }
-
-    .prog-fill {
-      height: 100%;
-      width: 0%;
-      background-color: #27ae60;
-      transition: width 0.15s linear;
-    }
-
-    .status-msg {
-      font-size: 0.88rem;
-      font-weight: bold;
-      text-align: center;
-      display: none;
-      padding: 6px 0;
-    }
-
-    /* Tasmota Console Box */
-    .console-container {
+    /* Console Box */
+    .console-box {
       border: 1px solid var(--border);
-      border-radius: 4px;
+      border-radius: 6px;
       background-color: var(--console-bg);
       overflow: hidden;
       display: none;
     }
 
-    .console-header {
-      background-color: #1a1a1a;
-      padding: 6px 10px;
+    .console-bar {
+      background-color: #111a24;
+      padding: 6px 12px;
       font-size: 0.75rem;
       font-weight: bold;
-      color: #888888;
-      border-bottom: 1px solid #333333;
+      color: #8b949e;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      border-bottom: 1px solid #1c2733;
     }
 
-    .console-content {
+    .console-text {
       padding: 10px;
       color: var(--console-text);
-      font-family: 'Courier New', Courier, monospace;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
       font-size: 0.78rem;
-      max-height: 180px;
+      max-height: 160px;
       overflow-y: auto;
       white-space: pre-wrap;
       line-height: 1.35;
     }
 
-    /* Info note */
-    .info-note {
-      font-size: 0.78rem;
-      color: var(--text-muted);
+    /* Footer */
+    .footer {
       text-align: center;
-      line-height: 1.4;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      padding: 8px 0;
     }
 
-    .info-note a {
+    .footer a {
       color: var(--btn-primary);
       text-decoration: none;
     }
 
-    .info-note a:hover {
+    .footer a:hover {
       text-decoration: underline;
     }
   </style>
 </head>
 <body>
 
-  <div class="tasmota-container">
+  <div class="app-container">
     <!-- Header -->
-    <div class="tasmota-header">
+    <div class="header">
       <h1>ESP Fan Control</h1>
-      <p>ESP32-C3 4-Wire PWM Fan Controller</p>
+      <p>ESP32-C3 4-Wire PWM Cooler &bull; Simple Installer</p>
     </div>
 
-    <!-- Live Parameters / Telemetry Table -->
-    <table class="tasmota-table">
-      <tbody>
-        <tr>
-          <td class="label">Device</td>
-          <td class="val">ESP32-C3 Mini</td>
-        </tr>
-        <tr>
-          <td class="label">PWM Output (Blue)</td>
-          <td class="val val-blue">GPIO 4 &bull; 25 kHz</td>
-        </tr>
-        <tr>
-          <td class="label">Tachometer (Yellow)</td>
-          <td class="val val-yellow">GPIO 3 (Pull-up)</td>
-        </tr>
-        <tr>
-          <td class="label">Stall Protection</td>
-          <td class="val">20% Minimum Floor</td>
-        </tr>
-        <tr>
-          <td class="label">State Persistence</td>
-          <td class="val val-green">NVS Flash Enabled</td>
-        </tr>
-        <tr>
-          <td class="label">BLE Broadcast</td>
-          <td class="val">ESP32-C3 Fan</td>
-        </tr>
-      </tbody>
-    </table>
+    <!-- Browser Warning for non-WebSerial browsers -->
+    <div id="browserWarning" class="browser-banner">
+      <strong>Browser Notice:</strong> Your current browser doesn't support direct USB flashing. Please open this page in <strong>Google Chrome</strong> or <strong>Microsoft Edge</strong> on a PC or Android phone (via USB-OTG).
+    </div>
 
-    <!-- Tasmota-Style Action Stack -->
-    <div class="btn-stack">
-      <button id="btnFlash" class="tasmota-btn">
-        Flash ESP32 Firmware
-      </button>
+    <!-- Guided 3-Step Wizard Card -->
+    <div class="card">
+      <div class="steps-list">
+        <div class="step-item">
+          <div class="step-number">1</div>
+          <div class="step-text">
+            <h3>Connect your ESP32-C3</h3>
+            <p>Use a USB cable to plug the board into your phone (with OTG) or computer.</p>
+          </div>
+        </div>
 
-      <div id="progContainer" class="prog-container">
-        <div id="progBar" class="prog-fill"></div>
+        <div class="step-item">
+          <div class="step-number">2</div>
+          <div class="step-text">
+            <h3>One-Click Install</h3>
+            <p>Click the blue button below and select your device from the popup list.</p>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-number">3</div>
+          <div class="step-text">
+            <h3>Ready to Control!</h3>
+            <p>Download the Android app to control fan speeds over Bluetooth.</p>
+          </div>
+        </div>
       </div>
-      <div id="statusMsg" class="status-msg"></div>
 
-      <a href="https://github.com/roufsweb/esp-fan-control/releases/download/v1.0.0/app-debug.apk" class="tasmota-btn secondary">
-        Download Android APK (v1.0.0)
-      </a>
+      <!-- Action Buttons -->
+      <div class="btn-stack">
+        <button id="btnFlash" class="btn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M15 9H9v6h6V9zm-2 4h-2v-2h2v2zm8-2V9h-2V7c0-1.1-.9-2-2-2h-2V3h-2v2h-2V3H9v2H7c-1.1 0-2 .9-2 2v2H3v2h2v2H3v2h2v2c0 1.1.9 2 2 2h2v2h2v-2h2v2h2v-2h2c1.1 0 2-.9 2-2v-2h2v-2h-2v-2h2zm-4 6H7V7h10v10z"/>
+          </svg>
+          Install Fan Firmware
+        </button>
 
-      <button id="btnToggleConsole" class="tasmota-btn secondary" style="background-color: #555555; padding: 9px; font-size: 0.85rem;">
-        Console
+        <a href="https://github.com/roufsweb/esp-fan-control/releases/download/v1.0.0/app-debug.apk" class="btn secondary">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/>
+          </svg>
+          Download Android APK
+        </a>
+      </div>
+
+      <!-- Live Flashing Progress Box -->
+      <div id="statusBox" class="status-box">
+        <div class="status-title">
+          <span id="statusHeading">Connecting...</span>
+          <span id="pctBadge" style="font-size: 0.85rem; font-weight: normal; color: var(--text-muted);">0%</span>
+        </div>
+        <div class="prog-track">
+          <div id="progFill" class="prog-fill"></div>
+        </div>
+        <div id="statusDetail" class="status-sub">Please select your ESP32 in the browser prompt.</div>
+      </div>
+
+      <!-- Troubleshooting Helper (shown on error) -->
+      <div id="troubleBox" class="trouble-card">
+        <strong>Connection Tip:</strong><br>
+        1. Hold down the button labeled <strong>BOOT</strong> (or <strong>IO9</strong>) on your ESP32 board.<br>
+        2. While holding BOOT, click <strong>Install Fan Firmware</strong> again.<br>
+        3. Release the button once the progress bar starts.
+      </div>
+    </div>
+
+    <!-- Telemetry & Wiring Pinout Table -->
+    <div class="table-card">
+      <table class="tasmota-table">
+        <tbody>
+          <tr>
+            <td class="label">Hardware</td>
+            <td class="val">ESP32-C3 Mini</td>
+          </tr>
+          <tr>
+            <td class="label">PWM Control (Blue)</td>
+            <td class="val val-blue">GPIO 4 &bull; 25 kHz</td>
+          </tr>
+          <tr>
+            <td class="label">Tachometer (Yellow)</td>
+            <td class="val val-yellow">GPIO 3 (Pull-up)</td>
+          </tr>
+          <tr>
+            <td class="label">Fan Power (Red/Black)</td>
+            <td class="val">+5V/+12V &bull; GND</td>
+          </tr>
+          <tr>
+            <td class="label">Bluetooth Broadcast</td>
+            <td class="val">ESP32-C3 Fan</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Advanced Console Toggle -->
+    <div style="text-align: center;">
+      <button id="btnConsoleToggle" style="background: none; border: none; font-size: 0.8rem; color: var(--text-muted); cursor: pointer; text-decoration: underline;">
+        Show Terminal Console
       </button>
     </div>
 
-    <!-- Tasmota Monospace Console Box -->
-    <div id="consoleWrapper" class="console-container">
-      <div class="console-header">Console Log</div>
-      <div id="consoleText" class="console-content">00:00:00.000 CMD: Ready for WebSerial connection.</div>
+    <div id="consoleWrapper" class="console-box">
+      <div class="console-bar">Terminal Output</div>
+      <div id="consoleText" class="console-text">Waiting for connection...</div>
     </div>
 
-    <!-- Instructions / Footer -->
-    <div class="info-note">
-      Hold <strong>BOOT</strong> on ESP32-C3 while plugging in USB to flash.<br>
-      <a href="https://github.com/roufsweb/esp-fan-control" target="_blank" rel="noopener">GitHub Project Repository</a>
+    <!-- Footer -->
+    <div class="footer">
+      <a href="https://github.com/roufsweb/esp-fan-control" target="_blank" rel="noopener">GitHub Project Repository</a> &bull;
+      <a href="https://github.com/roufsweb/esp-fan-control/releases/tag/v1.0.0" target="_blank" rel="noopener">Release v1.0.0</a>
     </div>
   </div>
 
-  <!-- In-Page Native WebSerial Flasher Engine (Zero Redirects) -->
+  <!-- Native In-Page WebSerial Flasher Engine -->
   <script type="module">
     import { ESPLoader, Transport } from './esptool-bundle.js';
 
     const btnFlash = document.getElementById('btnFlash');
-    const btnToggleConsole = document.getElementById('btnToggleConsole');
+    const browserWarning = document.getElementById('browserWarning');
+    const statusBox = document.getElementById('statusBox');
+    const statusHeading = document.getElementById('statusHeading');
+    const statusDetail = document.getElementById('statusDetail');
+    const pctBadge = document.getElementById('pctBadge');
+    const progFill = document.getElementById('progFill');
+    const troubleBox = document.getElementById('troubleBox');
+    const btnConsoleToggle = document.getElementById('btnConsoleToggle');
     const consoleWrapper = document.getElementById('consoleWrapper');
     const consoleText = document.getElementById('consoleText');
-    const statusMsg = document.getElementById('statusMsg');
-    const progContainer = document.getElementById('progContainer');
-    const progBar = document.getElementById('progBar');
 
-    function getTimestamp() {
-      const now = new Date();
-      return now.toTimeString().split(' ')[0] + '.' + String(now.getMilliseconds()).padStart(3, '0');
+    // Check browser compatibility
+    if (!('serial' in navigator)) {
+      browserWarning.style.display = 'block';
+      btnFlash.disabled = true;
     }
 
+    btnConsoleToggle.addEventListener('click', () => {
+      const isVisible = consoleWrapper.style.display === 'block';
+      consoleWrapper.style.display = isVisible ? 'none' : 'block';
+      btnConsoleToggle.textContent = isVisible ? 'Show Terminal Console' : 'Hide Terminal Console';
+    });
+
     function log(msg) {
-      consoleWrapper.style.display = 'block';
-      consoleText.textContent += '\n' + getTimestamp() + ' ' + msg;
+      consoleText.textContent += '\n' + msg;
       consoleText.scrollTop = consoleText.scrollHeight;
     }
 
-    function setStatus(msg, isError = false) {
-      statusMsg.style.display = 'block';
-      statusMsg.textContent = msg;
-      statusMsg.style.color = isError ? 'var(--error)' : 'var(--text)';
+    function setStep(heading, detail, progressPct = null, isError = false) {
+      statusBox.style.display = 'flex';
+      statusHeading.textContent = heading;
+      statusHeading.style.color = isError ? 'var(--error)' : 'var(--text)';
+      statusDetail.textContent = detail;
+      if (progressPct !== null) {
+        pctBadge.textContent = `${progressPct}%`;
+        progFill.style.width = `${progressPct}%`;
+      }
     }
 
-    btnToggleConsole.addEventListener('click', () => {
-      consoleWrapper.style.display = (consoleWrapper.style.display === 'block') ? 'none' : 'block';
-    });
-
     btnFlash.addEventListener('click', async () => {
-      if (!('serial' in navigator)) {
-        alert('WebSerial is supported in Google Chrome, Edge, and Opera (PC or Android via USB-OTG).');
-        return;
-      }
-
+      troubleBox.style.display = 'none';
       btnFlash.disabled = true;
-      consoleWrapper.style.display = 'block';
-      consoleText.textContent = getTimestamp() + ' FLSH: WebSerial initiated...';
-      progContainer.style.display = 'block';
-      progBar.style.width = '0%';
-      setStatus('Connecting to ESP32...');
+      consoleText.textContent = '[WebSerial] Initializing...';
+      setStep('Connecting...', 'Please choose your ESP32-C3 in the browser popup.', 0);
 
       let transport = null;
 
       try {
-        log('PORT: Requesting USB serial device...');
+        log('Requesting serial port access...');
         const port = await navigator.serial.requestPort();
         transport = new Transport(port, true);
 
         const espLoaderTerminal = {
           clean() {},
-          writeLine(d) { log('ROM: ' + d); },
-          write(d) { log('ROM: ' + d); }
+          writeLine(d) { log(d); },
+          write(d) { log(d); }
         };
 
         const loader = new ESPLoader({
@@ -363,20 +533,18 @@
           terminal: espLoaderTerminal
         });
 
-        setStatus('Synchronizing with bootloader...');
-        log('SYNC: Handshaking at 460800 baud...');
+        setStep('Synchronizing...', 'Communicating with ESP32-C3 bootloader...', 5);
+        log('Attempting sync handshake...');
         const chip = await loader.main();
-        log('CHIP: Detected ' + chip);
+        log(`Connected! Chip detected: ${chip}`);
 
-        setStatus('Loading firmware binary...');
-        log('FETCH: Downloading firmware_merged.bin (872 KB)...');
+        setStep('Loading Firmware...', 'Downloading pre-compiled fan control binary...', 15);
         const resp = await fetch('./firmware_merged.bin');
-        if (!resp.ok) throw new Error('Could not fetch firmware_merged.bin');
+        if (!resp.ok) throw new Error('Could not download firmware_merged.bin');
         const binArray = new Uint8Array(await resp.arrayBuffer());
-        log('IMAGE: ' + binArray.length + ' bytes ready for 0x0');
+        log(`Binary loaded: ${(binArray.length / 1024).toFixed(1)} KB.`);
 
-        setStatus('Writing flash at 0x0...');
-        progBar.style.width = '5%';
+        setStep('Installing Firmware...', 'Writing code to ESP32 flash memory...', 20);
 
         await loader.writeFlash({
           fileArray: [{ data: binArray, address: 0x0 }],
@@ -384,24 +552,25 @@
           eraseAll: false,
           compress: true,
           reportProgress: (_, written, total) => {
-            const pct = Math.floor((written / total) * 100);
-            progBar.style.width = pct + '%';
-            setStatus('Flashing: ' + pct + '% (' + Math.floor(written / 1024) + ' KB / ' + Math.floor(total / 1024) + ' KB)');
+            const pct = Math.floor(20 + ((written / total) * 75)); // 20% to 95%
+            setStep('Installing Firmware...', `Writing: ${Math.floor(written / 1024)} KB of ${Math.floor(total / 1024)} KB`, pct);
           }
         });
 
-        progBar.style.width = '100%';
-        log('DONE: Flash write verified successfully.');
-        setStatus('Flashed Successfully! Rebooting...');
+        setStep('Finishing...', 'Rebooting ESP32 into normal mode...', 98);
+        log('Flash verified. Triggering hardware reset...');
 
         try { await loader.after('hard_reset'); } catch (_) {}
         await transport.disconnect();
-        log('RESET: ESP32-C3 rebooted into normal mode.');
-        setStatus('Complete! ESP32-C3 is now running.');
+
+        setStep('Installation Complete!', 'Your ESP32-C3 is now running. Install the Android app to control your fan.', 100);
+        progFill.style.backgroundColor = 'var(--success)';
+        log('Success! ESP32-C3 is active and broadcasting over Bluetooth LE.');
 
       } catch (err) {
-        log('ERR: ' + err.message);
-        setStatus('Error: ' + err.message, true);
+        log(`Error: ${err.message}`);
+        setStep('Connection Failed', err.message, null, true);
+        troubleBox.style.display = 'block';
         if (transport) {
           try { await transport.disconnect(); } catch (_) {}
         }
