@@ -25,10 +25,10 @@ void BleFanService::begin(SpeedChangeCallback onSpeedChange, ModeChangeCallback 
     // Create GATT Service
     pService_ = pServer_->createService(BLE_SERVICE_UUID);
 
-    // Speed Characteristic (Read, Write, Notify)
+    // Speed Characteristic (Read, Write, Write No Response, Notify)
     pCharSpeed_ = pService_->createCharacteristic(
         BLE_CHAR_FAN_SPEED_UUID,
-        NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::NOTIFY
+        NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_NR | NIMBLE_PROPERTY::NOTIFY
     );
     uint8_t defaultSpeed = 0;
     pCharSpeed_->setValue(&defaultSpeed, 1);
@@ -42,10 +42,10 @@ void BleFanService::begin(SpeedChangeCallback onSpeedChange, ModeChangeCallback 
     uint16_t defaultRpm = 0;
     pCharRpm_->setValue(reinterpret_cast<uint8_t*>(&defaultRpm), 2);
 
-    // Mode Characteristic (Read, Write, Notify)
+    // Mode Characteristic (Read, Write, Write No Response, Notify)
     pCharMode_ = pService_->createCharacteristic(
         BLE_CHAR_FAN_MODE_UUID,
-        NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::NOTIFY
+        NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_NR | NIMBLE_PROPERTY::NOTIFY
     );
     uint8_t defaultMode = 0; // Manual
     pCharMode_->setValue(&defaultMode, 1);
@@ -103,16 +103,20 @@ void BleFanService::notifyRpm(uint16_t rpm) {
 }
 
 void BleFanService::notifySpeed(uint8_t speedPercent) {
-    if (clientConnected_ && pCharSpeed_) {
+    if (pCharSpeed_) {
         pCharSpeed_->setValue(&speedPercent, 1);
-        pCharSpeed_->notify();
+        if (clientConnected_) {
+            pCharSpeed_->notify();
+        }
     }
 }
 
 void BleFanService::notifyMode(uint8_t modeIndex) {
-    if (clientConnected_ && pCharMode_) {
+    if (pCharMode_) {
         pCharMode_->setValue(&modeIndex, 1);
-        pCharMode_->notify();
+        if (clientConnected_) {
+            pCharMode_->notify();
+        }
     }
 }
 

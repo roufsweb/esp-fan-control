@@ -71,12 +71,21 @@ class BleManager(private val context: Context) {
     private var targetDevice: BluetoothDevice? = null
     private var isAutoReconnectActive = true
     private var reconnectAttempt = 0
+    private var scanTimeoutJob: Job? = null
 
-    // Hardware Filtered Scanning
+    // Scan Callback with dual UUID + Name matching
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
-            result?.device?.let { device ->
-                Log.d(TAG, "Target ESP32 found: ${device.name ?: "Unknown"} [${device.address}]")
+            val device = result?.device ?: return
+            val record = result.scanRecord
+            val name = device.name ?: record?.deviceName ?: ""
+
+            val matchesUuid = record?.serviceUuids?.any { it.uuid == SERVICE_UUID } == true
+            val matchesName = name.contains("ESP32-C3 Fan", ignoreCase = true) ||
+                              name.contains("ESP32", ignoreCase = true)
+
+            if (matchesUuid || matchesName) {
+                Log.d(TAG, "Target ESP32 found: $name [${device.address}]")
                 stopScan()
                 connectToDevice(device)
             }
@@ -105,21 +114,48 @@ class BleManager(private val context: Context) {
             return
         }
 
+        isAutoReconnectActive = true
         _connectionState.value = BleConnectionState.SCANNING
 
-        val filter = ScanFilter.Builder()
-            .setServiceUuid(ParcelUuid(SERVICE_UUID))
-            .build()
+        // Targeted filters: by Service UUID or Device Name
+        val filters = listOf(
+            ScanFilter.Builder().setServiceUuid(ParcelUuid(SERVICE_UUID)).build(),
+            ScanFilter.Builder().setDeviceName("ESP32-C3 Fan").build()
+        )
 
         val settings = ScanSettings.Builder()
             .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
             .build()
 
-        scanner.startScan(listOf(filter), settings, scanCallback)
+        try {
+            scanner.startScan(filters, settings, scanCallback)
+        } catch (e: Exception) {
+            Log.w(TAG, "Filtered scan failed, trying open scan: ${e.message}")
+            try {
+                scanner.startScan(null, settings, scanCallback)
+            } catch (ex: Exception) {
+                Log.e(TAG, "Cannot start BLE scan: ${ex.message}")
+                _connectionState.value = BleConnectionState.DISCONNECTED
+                return
+            }
+        }
 
-        // Safety timeout: stop scanning after 15 seconds
-        scope.launch {
-            delay(15000)
+        scanTimeoutJob?.cancel()
+        scanTimeoutJob = scope.launch {
+            // Adaptive fallback: if targeted scan doesn't find the device in 3.5s, switch to broad scan
+            delay(3500)
+            if (_connectionState.value == BleConnectionState.SCANNING) {
+                try {
+                    scanner.stopScan(scanCallback)
+                    scanner.startScan(null, settings, scanCallback)
+                    Log.d(TAG, "Targeted scan timed out; switched to broad scan with software filter")
+                } catch (e: Exception) {
+                    Log.w(TAG, "Broad scan transition failed: ${e.message}")
+                }
+            }
+
+            // Global safety timeout: stop scanning after 15 seconds
+            delay(11500)
             if (_connectionState.value == BleConnectionState.SCANNING) {
                 stopScan()
                 _connectionState.value = BleConnectionState.DISCONNECTED
@@ -128,12 +164,24 @@ class BleManager(private val context: Context) {
     }
 
     fun stopScan() {
-        bluetoothAdapter?.bluetoothLeScanner?.stopScan(scanCallback)
+        scanTimeoutJob?.cancel()
+        scanTimeoutJob = null
+        try {
+            bluetoothAdapter?.bluetoothLeScanner?.stopScan(scanCallback)
+        } catch (e: Exception) {
+            Log.w(TAG, "Error stopping scan: ${e.message}")
+        }
     }
 
     private fun connectToDevice(device: BluetoothDevice) {
         targetDevice = device
         _connectionState.value = BleConnectionState.CONNECTING
+
+        try {
+            bluetoothGatt?.disconnect()
+            bluetoothGatt?.close()
+        } catch (_: Exception) {}
+        bluetoothGatt = null
 
         bluetoothGatt = device.connectGatt(
             context,
@@ -146,8 +194,10 @@ class BleManager(private val context: Context) {
     fun disconnect() {
         isAutoReconnectActive = false
         stopScan()
-        bluetoothGatt?.disconnect()
-        bluetoothGatt?.close()
+        try {
+            bluetoothGatt?.disconnect()
+            bluetoothGatt?.close()
+        } catch (_: Exception) {}
         bluetoothGatt = null
         _connectionState.value = BleConnectionState.DISCONNECTED
     }
@@ -165,7 +215,9 @@ class BleManager(private val context: Context) {
                 BluetoothProfile.STATE_DISCONNECTED -> {
                     Log.w(TAG, "GATT disconnected (status $status)")
                     _connectionState.value = BleConnectionState.DISCONNECTED
-                    gatt?.close()
+                    try {
+                        gatt?.close()
+                    } catch (_: Exception) {}
                     bluetoothGatt = null
 
                     if (isAutoReconnectActive) {
@@ -188,6 +240,53 @@ class BleManager(private val context: Context) {
 
                     // Subscribe to RPM notifications
                     enableRpmNotifications(gatt)
+                } else {
+                    Log.w(TAG, "ESP32 Fan Service UUID not found in GATT database")
+                }
+            }
+        }
+
+        override fun onDescriptorWrite(
+            gatt: BluetoothGatt?,
+            descriptor: BluetoothGattDescriptor?,
+            status: Int
+        ) {
+            if (status == BluetoothGatt.GATT_SUCCESS && gatt != null) {
+                Log.d(TAG, "Notifications enabled on CCCD. Reading initial fan speed...")
+                // Read current speed from ESP32
+                charSpeed?.let { gatt.readCharacteristic(it) }
+            }
+        }
+
+        override fun onCharacteristicRead(
+            gatt: BluetoothGatt,
+            characteristic: BluetoothGattCharacteristic,
+            value: ByteArray,
+            status: Int
+        ) {
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                handleCharacteristicUpdate(characteristic.uuid, value)
+                // If we just read speed, now read mode
+                if (characteristic.uuid == CHAR_SPEED_UUID) {
+                    charMode?.let { gatt.readCharacteristic(it) }
+                }
+            }
+        }
+
+        @Deprecated("Deprecated in Java")
+        override fun onCharacteristicRead(
+            gatt: BluetoothGatt?,
+            characteristic: BluetoothGattCharacteristic?,
+            status: Int
+        ) {
+            if (status == BluetoothGatt.GATT_SUCCESS && characteristic != null) {
+                @Suppress("DEPRECATION")
+                handleCharacteristicUpdate(characteristic.uuid, characteristic.value)
+                if (characteristic.uuid == CHAR_SPEED_UUID && gatt != null) {
+                    charMode?.let {
+                        @Suppress("DEPRECATION")
+                        gatt.readCharacteristic(it)
+                    }
                 }
             }
         }
@@ -200,7 +299,6 @@ class BleManager(private val context: Context) {
             handleCharacteristicUpdate(characteristic.uuid, value)
         }
 
-        // Backward compatibility for Android <= 12
         @Deprecated("Deprecated in Java")
         override fun onCharacteristicChanged(
             gatt: BluetoothGatt?,
@@ -251,16 +349,21 @@ class BleManager(private val context: Context) {
         }
     }
 
-    // Fast Write Without Response
+    // Fast and robust writes
     fun sendSpeedCommand(percent: Int) {
         val gatt = bluetoothGatt ?: return
         val characteristic = charSpeed ?: return
         val clamped = percent.coerceIn(0, 100).toByte()
 
-        characteristic.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+        val writeType = if ((characteristic.properties and BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE) != 0) {
+            BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+        } else {
+            BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+        }
+        characteristic.writeType = writeType
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            gatt.writeCharacteristic(characteristic, byteArrayOf(clamped), BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE)
+            gatt.writeCharacteristic(characteristic, byteArrayOf(clamped), writeType)
         } else {
             @Suppress("DEPRECATION")
             characteristic.value = byteArrayOf(clamped)
@@ -275,10 +378,15 @@ class BleManager(private val context: Context) {
         val characteristic = charMode ?: return
         val modeByte = mode.index.toByte()
 
-        characteristic.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+        val writeType = if ((characteristic.properties and BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE) != 0) {
+            BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+        } else {
+            BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+        }
+        characteristic.writeType = writeType
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            gatt.writeCharacteristic(characteristic, byteArrayOf(modeByte), BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE)
+            gatt.writeCharacteristic(characteristic, byteArrayOf(modeByte), writeType)
         } else {
             @Suppress("DEPRECATION")
             characteristic.value = byteArrayOf(modeByte)
@@ -301,4 +409,3 @@ class BleManager(private val context: Context) {
         }
     }
 }
-

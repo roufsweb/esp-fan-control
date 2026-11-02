@@ -118,6 +118,8 @@ void setup() {
 
   // Initialize BLE Stack and GATT Service
   bleService.begin(onBleSpeedReceived, onBleModeReceived);
+  bleService.notifySpeed(currentPower ? currentSpeed : 0);
+  bleService.notifyMode(currentMode);
 
   Serial.println("[INIT] Peripherals and BLE ready.");
 }
