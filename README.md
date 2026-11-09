@@ -4,13 +4,13 @@ A modern, high-precision cooling control system featuring an **ESP32-C3 Mini** f
 
 [![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-blue?logo=github)](https://github.com/roufsweb/esp-fan-control)
 [![GitHub Release](https://img.shields.io/badge/Release-v1.0.0-blue?logo=github)](https://github.com/roufsweb/esp-fan-control/releases/tag/v1.0.0)
-[![GitHub Pages Portal](https://img.shields.io/badge/Web%20Portal-GitHub%20Pages-success?logo=github)](https://roufsweb.github.io/esp-fan-control/)
+[![GitHub Pages Portal](https://img.shields.io/badge/Web%20Portal-GitHub%20Pages-success?logo=github)](https://esp-fan-control.roufsweb.com/)
 [![Download APK](https://img.shields.io/badge/Download-Android%20APK-brightgreen?logo=android)](https://github.com/roufsweb/esp-fan-control/releases/download/v1.0.0/app-debug.apk)
 
 * **Official GitHub Release**: [**`v1.0.0 Release Page`**](https://github.com/roufsweb/esp-fan-control/releases/tag/v1.0.0)
 * **Direct APK Download**: [**`app-debug.apk` (v1.0.0, 18.6 MB)**](https://github.com/roufsweb/esp-fan-control/releases/download/v1.0.0/app-debug.apk)
 * **Unified Firmware Image**: [**`firmware_merged.bin` (offset `0x0`, 872 KB)**](https://github.com/roufsweb/esp-fan-control/releases/download/v1.0.0/firmware_merged.bin)
-* **Online Web Portal & Flasher**: [**https://roufsweb.github.io/esp-fan-control/**](https://roufsweb.github.io/esp-fan-control/)
+* **Online Web Portal & Flasher**: [**https://esp-fan-control.roufsweb.com/**](https://esp-fan-control.roufsweb.com/)
 
 ---
 
